@@ -29,7 +29,6 @@ Twitter.prototype.updateTweets = function() {
       
       _self.tweets.push('@<a href="https://twitter.com/'+status.user.screen_name+'" target="_blank">'+status.user.screen_name+'</a>: '+status.text.replace('<','&lt;').replace('>','&gt;'));
     });
-    console.log(main)
   });
 }
 
