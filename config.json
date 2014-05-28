@@ -1,0 +1,16 @@
+{
+  "irc": {
+    "username": "",
+    "access_token": ""
+  },
+  "mongodb": {
+    "database_url": "",
+    "collections": ["reports", "messages"]
+  },
+  "twitter": {
+    "consumer_key": "",
+    "consumer_secret": "",
+    "access_token_key": "",
+    "access_token_secret": ""
+  }
+}

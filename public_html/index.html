@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Twitch Status</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!--[if lt IE 9]>
+      <script src="https://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <link href="css/bootstrap-responsive.min.css" rel="stylesheet">
+
+    <style>
+      #marquee-holder {
+        width: 100%; 
+        color: white;
+        font-size: 10px;
+        font-family: 'Droid Sans', sans-serif;
+        white-space: nowrap;
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 9001;
+        background: rgba(0,0,0,0.75);
+      }
+    </style>
+
+  </head>
+  <body class="preview" id="top" data-spy="scroll" data-target=".navbar" data-offset="80">
+
+  <!-- Navbar
+    ================================================== -->
+ <div class="navbar navbar-fixed-top navbar-inverse">
+   <div class="navbar-inner">
+     <div class="container">
+       <a class="btn btn-navbar" data-toggle="collapse" data-target=".nav-collapse">
+         <span class="icon-bar"></span>
+         <span class="icon-bar"></span>
+         <span class="icon-bar"></span>
+       </a>
+       <a class="brand" href="index.html">Twitch Status</a>
+       <div class="nav-collapse collapse" id="main-menu">
+        <ul class="nav" id="main-menu-left">
+          <li><a id="swatch-link" href="#about">About</a></li>
+          <li><a id="swatch-link" href="#web">Web Servers</a></li>
+          <li><a id="swatch-link" href="#ingest">Ingest Servers</a></li>
+          <li><a id="swatch-link" href="#chat">Chat Servers</a></li>
+        </ul>
+        <ul class="nav pull-right">
+          <li><span style="font-size:18px;line-height:20px;display:block;padding: 15px 8px 14px;">Status:</span></li>
+          <li id="entireStatus"><span style="font-size:18px;color:grey;line-height:20px;display:block;padding: 15px 15px 0px 0px;">Unknown</span></li>
+        </ul>
+       </div>
+     </div>
+   </div>
+   <div id="marquee-holder"></div>
+ </div>
+ <div class="container">
+
+<!-- About
+================================================== -->
+<section id="about">
+  <div class="row">
+
+    <div class="span6">
+      <div class="well">
+        <h3>About</h3>
+        <p>Twitch sometimes has "twitches" in its infrastructue, and they also don't have a quick response time to service outages. This page serves as a tool to unofficially check on service problems at Twitch.<br /><br />
+        </p>
+      </div>
+    </div>
+
+    <div class="span6">
+      <div class="well">
+        <h3>Status Tracking</h3>
+        <p>This site monitors the ingest servers, the chat servers, and the web services over at Twitch remotely. The statistics generated on this site will be gathered by a single server. I will attempt to provide accurate data measurements, but they could be inaccurate. Service statistics are updated every 60 seconds.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- Twitch Website
+================================================== -->
+<section id="web">
+  <div class="page-header">
+    <h3>Web Servers</h3>
+  </div>
+
+  <div class="well">
+    <p>Web services are the front-end of the operation. The main website needs to be online to serve content to end users, and the API must be online for on-site features, third-party tools, and services to function properly.</p>
+  </div>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th style="width:200px;">Service</th>
+        <th>Description</th>
+        <th style="width:50px;text-align:center;">Status</th>
+        <th style="width:80px;text-align:center;">Load Time</th>
+      </tr>
+    </thead>
+    <tbody id="webServicesTable">
+    </tbody>
+  </table>
+</section>
+
+
+<!-- Ingest Servers
+================================================== -->
+<section id="ingest">
+  <div class="page-header">
+    <h3>Ingest Servers</h3>
+  </div>
+
+  <div class="well">
+    <p>The ingest servers are relatively stable creatures. There may be hiccups within the datacenters at which these are hosted that are undetectable by this website, and it's for this reason that Twitch Status only checks if they are reachable.</p>
+  </div>
+
+  <table class="table table-bordered table-striped">
+    <thead>
+      <tr>
+        <th style="width:200px;">Server</th>
+        <th>Location</th>
+        <th style="width:50px;text-align:center;">Status</th>
+      </tr>
+    </thead>
+    <tbody id="ingestTable">
+    </tbody>
+  </table>
+</section>
+
+<!-- Chat Servers
+================================================== -->
+<section id="chat">
+  <div class="page-header">
+    <h3>Chat Servers</h3>
+  </div>
+
+  <div class="well">
+    <p>This section of the site pertains to Twitch's chat infrastructure. The chat system is quite delicate and breaks easily. A graph directly below tracks the number of chat lines being sent every second in the top 3,000 channels on Twitch. A table below also tracks chat status based on server IP and port. When Twitch is having issues, you'll see how badly the issue extends on the realtime graph. Note that while a chat server may state it's online during an interruption of service, it may not work for you. There are multiple factors that cause chat interruptions for Twitch, and the extent of disruptions vary case by case.</p>
+  </div>
+
+  <div class="row">
+    <div id="nomNomNom" class="span4" style="display:none;"><img src="img/homer.gif" /></div>
+    <div id="realtimeChatHolder" class="span12"><div id="realtimeChatCount" style="display: inline-block; width: 100%; min-width: 310px; height: 278px; margin-bottom: 25px;"></div></div>
+  </div>
+
+  <div class="row-fluid">
+    <div class="alert alert-info" id="banned-alert" style="display:none;"><strong>Info:</strong><br />TwitchStatus is currently banned from (or "locked out" of) chat, which is why all servers show offline. This happens when Homer throws up his food all at once (and Twitch doesn't clean up afterwards). This ban lasts for 8 hours.</div>
+  </div>
+  
+  <ul class="nav nav-tabs" style="margin-bottom: 15px;">
+    <li class="active"><a href="#chat_main" data-toggle="tab">Main Chat</a></li>
+    <li><a href="#chat_event" data-toggle="tab">Event Chat</a></li>
+    <li><a href="#chat_group" data-toggle="tab">Group Chat</a></li>
+  </ul>
+  <div id="myTabContent" class="tab-content">
+    <div id="chat_main" class="tab-pane fade active in">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th style="width:50px;text-align:center;">Status</th>
+            <th style="width:90px;text-align:center;">Errors <small>(5 min)</small></th>
+            <th style="width:50px;text-align:center;">Lag <small>(Avg)</small></th>
+            <th style="width:100px;text-align:center;">Lag Graph</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+    <div id="chat_event" class="tab-pane fade">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th style="width:50px;text-align:center;">Status</th>
+            <th style="width:90px;text-align:center;">Errors <small>(5 min)</small></th>
+            <th style="width:50px;text-align:center;">Lag <small>(Avg)</small></th>
+            <th style="width:100px;text-align:center;">Lag Graph</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+    <div id="chat_group" class="tab-pane fade">
+      <table class="table table-bordered table-striped">
+        <thead>
+          <tr>
+            <th>Server</th>
+            <th style="width:50px;text-align:center;">Status</th>
+            <th style="width:90px;text-align:center;">Errors <small>(5 min)</small></th>
+            <th style="width:50px;text-align:center;">Lag <small>(Avg)</small></th>
+            <th style="width:100px;text-align:center;">Lag Graph</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</section>
+
+<br><br><br><br>
+
+     <!-- Footer
+      ================================================== -->
+      <hr>
+
+      <footer id="footer">
+        <p class="pull-right"><a href="http://www.nightdev.com">NightDev.com</a>&nbsp;&nbsp;&nbsp;<a href="#top">Back to top</a></p>
+        <p class="pull-left">
+          This site is not operated by, sponsored by, or affiliated with Twitch.tv in any way. Information may be inaccurate.
+        </p>
+      </footer>
+
+    </div><!-- /container -->
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <script src="js/jquery.smooth-scroll.min.js"></script>
+    <script src="js/jquery.marquee.js"></script>
+    <script src="js/highcharts.js"></script>
+    <script src="js/exporting.js"></script>
+    <script src="js/socket.io.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/sparkline.js"></script>
+    <script src="js/status.js"></script>
+  </body>
+</html>
