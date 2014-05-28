@@ -38,7 +38,9 @@ TwitchStatus = function() {
     });
   });
 
-  setInterval(this.cleanup, 600000);
+  setInterval(function() {
+    _self.cleanup();
+  }, 600000);
 }
 
 TwitchStatus.prototype.setup = function() {
@@ -73,8 +75,8 @@ TwitchStatus.prototype.cleanup = function() {
       past5 = (current - 300) * 1000,
       limit = new Date(past5);
 
-  db.reports.remove({ logged: { $lt: limit } });
-  db.messages.remove({ logged: { $lt: limit } });
+  this.db.reports.remove({ logged: { $lt: limit } });
+  this.db.messages.remove({ logged: { $lt: limit } });
 }
 
 new TwitchStatus();
