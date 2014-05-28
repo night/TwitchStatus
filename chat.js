@@ -4,7 +4,6 @@ var config = require('./config.json'),
 var Chat = function(main) {
   this.db = main.db;
   this.servers = main.servers;
-  
 
   this.lostMessages = {};
 
@@ -147,7 +146,6 @@ Chat.prototype.pingChat = function() {
       }
     }
   });
-  
 }
 
 Chat.prototype.setup = function(server) {
@@ -205,64 +203,63 @@ Chat.prototype.setup = function(server) {
 
   // Parse incoming messages to test for "ping"
   server.clientMonitor.addListener('message#'+config.irc.username, function (from, message) {
-      if(from !== config.irc.username) return;
+    if(from !== config.irc.username) return;
 
-      var timeNow = Date.now();
+    var timeNow = Date.now();
 
-      // For some reason, your first message always come through more quickly/reliably than the rest.
-      // Lets just discard it.
-      if(server.firstMessage) {
-        server.firstMessage = false;
-        return;
+    // For some reason, your first message always come through more quickly/reliably than the rest.
+    // Lets just discard it.
+    if(server.firstMessage) {
+      server.firstMessage = false;
+      return;
+    }
+
+    var params = message.split(" ");
+
+    // Check if we have a valid message ID
+    var lostMessageID = params[2];
+    if(!_self.lostMessages[lostMessageID]) return;
+
+    // If we received a message, make sure we mark this server as working "ok"
+    // by marking it as having received the message
+    var receiver = _self.lostMessages[lostMessageID].receivers[server.name];
+    receiver.received = true;
+    receiver.time = Date.now();
+
+    // If the server we got the message from is itself (we run 2 connections per server),
+    // measure the "ping"
+    if(server.name === params[0]) {
+      // timeThen is the time the message was sent
+      var timeThen = parseInt(message.split(" ")[1]);
+
+      server.pings.push(timeNow-timeThen-40);
+
+      // Calculate average ping over past minute
+      var avgPing = 0;
+      if(server.pings.length <= 6) {
+        server.pings.forEach(function(lag){
+          avgPing += lag;
+        });
+        server.lag = Math.round(avgPing/server.pings.length);
+      } else {
+        for(var i=server.pings.length-1; i>=server.pings.length-7; i--) {
+          avgPing += server.pings[i];
+        }
+        server.lag = Math.round(avgPing/6);
       }
 
-      var params = message.split(" ");
-
-      // Check if we have a valid message ID
-      var lostMessageID = params[2];
-      if(!_self.lostMessages[lostMessageID]) return;
-
-      // If we received a message, make sure we mark this server as working "ok"
-      // by marking it as having received the message
-      var receiver = _self.lostMessages[lostMessageID].receivers[server.name];
-      receiver.received = true;
-      receiver.time = Date.now();
-
-
-      // If the server we got the message from is itself (we run 2 connections per server),
-      // measure the "ping"
-      if(server.name === params[0]) {
-        // timeThen is the time the message was sent
-        var timeThen = parseInt(message.split(" ")[1]);
-
-        server.pings.push(timeNow-timeThen-40);
-
-        // Calculate average ping over past minute
-        var avgPing = 0;
-        if(server.pings.length <= 6) {
-          server.pings.forEach(function(lag){
-            avgPing += lag;
-          });
-          server.lag = Math.round(avgPing/server.pings.length);
-        } else {
-          for(var i=server.pings.length-1; i>=server.pings.length-7; i--) {
-            avgPing += server.pings[i];
-          }
-          server.lag = Math.round(avgPing/6);
-        }
-
-        // If messages take longer than 3 seconds to go through, the server is slow.
-        // If the server has more than 20 errors, the server is slow.
-        if(server.lag > 3000) {
-          server.status = "slow";
-        } else if(server.errors.total >= 20) {
-          server.status = "slow";
-        } else {
-          server.status = "online";
-        }
-        server.lastMessage = Date.now();
+      // If messages take longer than 3 seconds to go through, the server is slow.
+      // If the server has more than 20 errors, the server is slow.
+      if(server.lag > 3000) {
+        server.status = "slow";
+      } else if(server.errors.total >= 20) {
+        server.status = "slow";
+      } else {
+        server.status = "online";
       }
-    });
+      server.lastMessage = Date.now();
+    }
+  });
 
   setInterval(function() {
     // When joins fail, we need to try to join the channel again.
