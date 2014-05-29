@@ -48,8 +48,8 @@ Chat.prototype.checkLostMessages = function(id) {
   var percentReceived = parseFloat(((received/receivers.length)*100).toFixed(2)),
       percentLost = parseFloat((100 - percentReceived).toFixed(2));
 
-  // If the message was completely lost or if the receiver only received its own message, then the server itself is having issues.
-  if(percentLost === 100 || received === receivedFromSelf) {
+  // If the message was completely lost or if the receiver only received its own messages, then the server itself is having issues.
+  if(percentLost === 100 || (receivers.length > 3 && received === receivedFromSelf)) {
     db.reports.save({type: "chat", kind: "lines", server: data.origin, logged: new Date() }, function(err, saved) {
       if( err || !saved ) {
         console.log("Error saving lines report.");
@@ -187,10 +187,10 @@ Chat.prototype.setup = function(server) {
   // When we get the MOTD (if we're disconnected), make sure we mark that we haven't joined yet.
   server.client.addListener('motd', function() {
     server.joined = false;
+    server.firstMessage = true;
   });
   server.clientMonitor.addListener('motd', function() {
     server.joined = false;
-    server.firstMessage = true;
   });
 
   // When we get NAMES, mark the channel as joined
