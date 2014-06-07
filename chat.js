@@ -274,13 +274,13 @@ Chat.prototype.setup = function(server) {
     var timeNow = Date.now(),
         timeThen = server.lastMessage;
     if(timeNow-timeThen > 120000) {
-      server.status = false;
+      server.status = 'offline';
     }    
   }, 5000);
 
   setInterval(function() {
     // If the connection seems or is offline, we reconnect periodically.
-    if(server.status === false) {
+    if(server.status === 'offline') {
       server.client.disconnect();
       server.clientMonitor.disconnect();
 
