@@ -4,7 +4,8 @@ var chat = require('./chat'),
     express = require('express'),
     http = require('./http'),
     ingests = require('./ingests'),
-    mongojs = require("mongojs"),
+    mongojs = require('mongojs'),
+    toobusy = require('express-toobusy'),
     twitter = require('./twitter');
 
 TwitchStatus = function() {
@@ -12,6 +13,7 @@ TwitchStatus = function() {
 
   this.app.listen(6699);
   this.app.disable('x-powered-by');
+  this.app.use(toobusy());
   this.app.use(express.static(__dirname + '/public_html'));
   this.app.use("/", express.static(__dirname + '/public_html/index.html'));
 
@@ -19,7 +21,8 @@ TwitchStatus = function() {
 
   this._servers = [
     { name: "Twitch.TV", type: "web", description: "Twitch's main website", host: "www.twitch.tv", path: "/", port: 80 },
-    { name: "API.Twitch.TV", type: "web", description: "Twitch's external endpoint for data retrieval", host: "api.twitch.tv", path: "/kraken/base", port: 443 }
+    { name: "API.Twitch.TV", type: "web", description: "Twitch's external endpoint for data retrieval", host: "api.twitch.tv", path: "/kraken/base", port: 443 },
+    { name: "TMI.Twitch.TV", type: "web", description: "Chat user lists (if this is down, mod status may also be broken)", host: "tmi.twitch.tv", path: "/group/user/monitorplz", port: 443 }
   ];
   this.servers = {};
   

@@ -135,8 +135,10 @@ Chat.prototype.pingChat = function() {
   Object.keys(servers).forEach(function(name) {
     var server = servers[name];
     if(server.type === "chat") {
-      if(server.pings.length > 49) {
-        server.pings.shift();
+      if(server.pings.length > 50) {
+        for(var i=0; i<server.pings.length-50; i++) {
+          server.pings.shift();
+        }
       }
       if(server.firstMessage === true) {
         server.client.say('#'+config.irc.username, "firstmessage "+name+" 0 0 v3");
