@@ -818,8 +818,7 @@ h4 small {
 
 .page-header {
   padding-bottom: 9px;
-  margin: 20px 0 30px;
-  border-bottom: 1px solid #eeeeee;
+  margin: 20px 0 5px;
 }
 
 ul,
@@ -2059,6 +2058,7 @@ table {
 }
 
 .table-bordered {
+  background: #151515;
   border: 1px solid #222222;
   border-collapse: separate;
   *border-collapse: collapse;
@@ -3116,14 +3116,11 @@ table th[class*="span"],
   min-height: 20px;
   padding: 19px;
   margin-bottom: 20px;
-  background-color: #131517;
+  background-color: #151515;
   border: 1px solid #030303;
   -webkit-border-radius: 4px;
      -moz-border-radius: 4px;
           border-radius: 4px;
-  -webkit-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-     -moz-box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
-          box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.05);
 }
 
 .well blockquote {
@@ -6200,15 +6197,11 @@ html {
 
 body {
   min-height: 100%;
-  background: #121417 url(/img/blackorchid.png) repeat;
-}
-
-.page-header {
-  border-bottom: 1px solid #222222;
+  background: #222;
 }
 
 hr {
-  border-bottom: none;
+  border-color: #151515;
 }
 
 .navbar .navbar-inner {
@@ -6895,17 +6888,9 @@ label {
 
 .well,
 .hero-unit {
-  -webkit-border-radius: 1px;
-     -moz-border-radius: 1px;
-          border-radius: 1px;
-}
-
-.well,
-.hero-unit {
-  border-top: solid 1px #2f2f2f;
-  -webkit-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-     -moz-box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+  -webkit-border-radius: 2px;
+     -moz-border-radius: 2px;
+          border-radius: 2px;
 }
 
 .thumbnail {

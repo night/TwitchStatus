@@ -146,6 +146,8 @@ function updateStatus() {
           var serverName = alert.server.replace(/(\.|\(|\)|:)/g,"_"),
               $server = $("tr[data-server='"+serverName+"']");
 
+          if($server.children("td.status").children("span").text() === "Offline") return;
+
           if(alert.message === 'Messages Lost') {
             if(alert.type === 'info') {
               messagesLost += 2;
@@ -155,8 +157,6 @@ function updateStatus() {
               messagesLost += 10;
             }
           }
-
-          if($server.children("td.status").children("span").text() === "Offline") return;
           
           $server.children("td").children(".alerts").prepend('<span class="badge badge-'+alert.type+'">'+alert.message+'</span>&nbsp;&nbsp;');
         });

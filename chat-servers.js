@@ -2,8 +2,6 @@ var config = require('./config.json'),
     request = require('request');
 
 var chatServers = function(servers, callback) {
-  var port6667Hosts = ["199.9.253.199", "199.9.253.210", "199.9.250.229", "199.9.250.239"];
-
   request({
     url: "https://api.twitch.tv/api/channels/"+config.irc.username+"/chat_properties",
     json: true,
@@ -27,22 +25,18 @@ var chatServers = function(servers, callback) {
       });
     });
 
-    port6667Hosts.forEach(function(host) {
-      for(var i=0; i<servers.length; i++) {
-        var server = servers[i];
+    var length = servers.length
+    for(var i=0; i<length; i++) {
+      var server = servers[i];
 
-        if(server.host === host) {
-          servers.push({
-            name: host+":"+6667,
-            type: "chat",
-            description: "Chat Server",
-            host: host,
-            port: 6667
-          });
-          break;
-        }
-      }
-    });
+      servers.push({
+        name: server.host+":"+6667,
+        type: "chat",
+        description: "Chat Server",
+        host: server.host,
+        port: 6667
+      });
+    }
 
     callback(servers);
   });
