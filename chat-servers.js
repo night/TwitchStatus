@@ -5,7 +5,7 @@ var chatServers = function(servers, callback) {
   request({
     url: "https://api.twitch.tv/api/channels/"+config.irc.username+"/chat_properties",
     json: true,
-    timeout: 10000
+    timeout: 60000
   }, function(error, response, data) {
     if(error || !data.chat_servers || data.eventchat || data.devchat) {
       callback(servers);
@@ -46,7 +46,7 @@ var eventChatServers = function(servers, callback) {
   request({
     url: "https://api.twitch.tv/api/channels/riotgames/chat_properties",
     json: true,
-    timeout: 10000
+    timeout: 60000
   }, function(error, response, data) {
     if(error || !data.chat_servers || !data.eventchat || data.devchat) {
       callback(servers);
@@ -74,7 +74,7 @@ var groupChatServers = function(servers, callback) {
   request({
     url: "https://chatdepot.twitch.tv/room_memberships?oauth_token="+config.irc.access_token,
     json: true,
-    timeout: 10000
+    timeout: 60000
   }, function(error, response, data) {
     if(error || !data.memberships || data.memberships.length === 0) {
       callback(servers);

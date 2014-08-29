@@ -84,7 +84,7 @@ function updateStatus() {
             if(d.status === "online") {
                 d.status = '<span class="label label-success">Online</span>';
             } else if(d.status === "offline") {
-                disruption++;
+                if(d.port !== 6667) disruption++;
                 offline = true;
                 d.status = '<span class="label label-important">Offline</span>';
             } else if(d.status === "slow") {

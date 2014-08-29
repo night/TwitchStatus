@@ -4,7 +4,7 @@ module.exports = function(callback) {
   request({
     url: "https://api.twitch.tv/kraken/ingests",
     json: true,
-    timeout: 10000
+    timeout: 60000
   }, function(error, response, data) {
     if(error || !data.ingests) {
       callback([]);
