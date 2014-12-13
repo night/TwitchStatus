@@ -84,6 +84,9 @@ Chat.prototype.checkLostMessages = function(id) {
       }
     });
   }
+
+  // Remove message id
+  delete this.lostMessages[id];
 }
 
 Chat.prototype.generateMessageID = function() {
@@ -134,6 +137,9 @@ Chat.prototype.pingChat = function() {
 
   Object.keys(servers).forEach(function(name) {
     var server = servers[name];
+
+    var channel = server.channel ? server.channel : '#'+config.irc.username;
+
     if(server.type === "chat") {
       if(server.pings.length > 50) {
         for(var i=0; i<server.pings.length-50; i++) {
@@ -141,10 +147,10 @@ Chat.prototype.pingChat = function() {
         }
       }
       if(server.firstMessage === true) {
-        server.client.say('#'+config.irc.username, "firstmessage "+name+" 0 0 v3");
+        server.client.say(channel, "firstmessage "+name+" 0 0 v3");
       } else {
         var data = _self.generateMessageLostObject(name);
-        server.client.say('#'+config.irc.username, name+" "+data.time+" "+data.id+" v3");
+        server.client.say(channel, name+" "+data.time+" "+data.id+" v3");
       }
     }
   });
@@ -167,8 +173,10 @@ Chat.prototype.setup = function(server) {
 
   server.lastMessage = Date.now();
 
+  var channel = server.channel ? server.channel : '#'+config.irc.username;
+
   var ircConfig = {
-    channels: ['#'+config.irc.username],
+    channels: [channel],
     password: "oauth:"+config.irc.access_token,
     port: server.port,
     debug: false
@@ -196,15 +204,15 @@ Chat.prototype.setup = function(server) {
   });
 
   // When we get NAMES, mark the channel as joined
-  server.client.addListener('names#'+config.irc.username, function() {
+  server.client.addListener('names'+channel, function() {
     server.joined = true;
   });
-  server.clientMonitor.addListener('names#'+config.irc.username, function() {
+  server.clientMonitor.addListener('names'+channel, function() {
     server.monitorJoined = true;
   });
 
   // Parse incoming messages to test for "ping"
-  server.clientMonitor.addListener('message#'+config.irc.username, function (from, message) {
+  server.clientMonitor.addListener('message'+channel, function (from, message) {
     if(from !== config.irc.username) return;
 
     var timeNow = Date.now();
@@ -266,10 +274,10 @@ Chat.prototype.setup = function(server) {
   setInterval(function() {
     // When joins fail, we need to try to join the channel again.
     if(server.monitorJoined === false) {
-      server.clientMonitor.send('JOIN', '#'+config.irc.username);
+      server.clientMonitor.send('JOIN', channel);
     }
     if(server.joined === false) {
-      server.client.send('JOIN', '#'+config.irc.username);
+      server.client.send('JOIN', channel);
     }
 
     // If the connection seems inactive, mark the server as offline.

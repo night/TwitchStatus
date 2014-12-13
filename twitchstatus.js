@@ -57,6 +57,7 @@ TwitchStatus.prototype.setup = function() {
       host: server.host.toLowerCase(),
       port: server.port,
       path: server.path,
+      channel: server.channel || undefined,
       status: "unknown",
       lag: 999999
     }

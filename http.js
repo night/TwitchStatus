@@ -31,7 +31,7 @@ HTTP.prototype.checkWebAddress = function(name, host, port, path) {
       url = "http"+((port===443)?"s":"")+"://"+host+":"+port+path;
 
   request.get({
-    url: url,
+    url: url+(url.indexOf('?') === -1 ? '?' : '&')+Math.random(),
     timeout: 30000
   }, function(err, res, body) {
     if(!err && res.statusCode === 200) {

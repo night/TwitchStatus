@@ -90,7 +90,8 @@ var groupChatServers = function(servers, callback) {
         type: "chat",
         description: "Group Chat Server",
         host: host,
-        port: port
+        port: port,
+        channel: '#'+data.memberships[0].room.irc_channel
       });
     });
 

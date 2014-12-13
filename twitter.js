@@ -20,7 +20,7 @@ var Twitter = function() {
 Twitter.prototype.updateTweets = function() {
   var _self = this;
 
-  twitter.search('#twitchstatus OR twitchstatus.com OR twitchstatus.net', { count: 50 }, function(data) {
+  twitter.search('#twitchstatus OR twitchstatus.com OR twitchstatus.net -istwitchdown.com', { count: 50 }, function(data) {
     if(!data.statuses) return;
 
     _self.tweets = [];
