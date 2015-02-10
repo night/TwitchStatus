@@ -499,7 +499,7 @@ $(document).ready(function () {
         },
         yAxis: {
             title: {
-                text: 'Value'
+                text: 'Lines Per Second'
             },
             plotLines: [{
                 value: 0,
