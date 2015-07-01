@@ -7,9 +7,10 @@
   "dependencies": {
     "express": "~4.2.0",
     "express-toobusy": "0.0.2",
-    "irc": ">=0.3.6",
+    "irc-message": "^3.0.1",
     "mongojs": ">=0.13.0",
     "request": ">=2.34.0",
-    "twitter": "~0.2.9"
+    "twitter": "~0.2.9",
+    "ws": "^0.7.2"
   }
 }

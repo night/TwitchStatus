@@ -10,12 +10,16 @@ var chat = require('./chat'),
 TwitchStatus = function() {
   this.app = express();
 
+  process.on('uncaughtException', function(err) {
+    console.log('Caught exception: ' + err);
+  });
+
   this.app.listen(6699);
   this.app.disable('x-powered-by');
   this.app.use(express.static(__dirname + '/public_html'));
   this.app.use("/", express.static(__dirname + '/public_html/index.html'));
 
-  this.db = mongojs.connect(config.mongodb.database_url, config.mongodb.collections);
+  this.db = mongojs(config.mongodb.database_url, config.mongodb.collections);
 
   this._servers = [
     { name: "Twitch.TV", type: "web", description: "Twitch's main website", host: "www.twitch.tv", path: "/", port: 80 },
@@ -57,7 +61,9 @@ TwitchStatus.prototype.setup = function() {
       host: server.host.toLowerCase(),
       port: server.port,
       path: server.path,
+      cluster: server.cluster || undefined,
       channel: server.channel || undefined,
+      protocol: server.protocol || undefined,
       status: "unknown",
       lag: 999999
     }

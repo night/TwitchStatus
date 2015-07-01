@@ -1,9 +1,11 @@
 var config = require('./config.json'),
-    irc = require('irc');
+    tmi = require('./tmi-connection-handler');
 
 var Chat = function(main) {
   this.db = main.db;
   this.servers = main.servers;
+
+  this.connectionQueue = [];
 
   this.lostMessages = {};
 
@@ -14,6 +16,11 @@ var Chat = function(main) {
   setInterval(function() {
     _self.pingChat();
   }, 10000);
+  setInterval(function() {
+    if(!_self.connectionQueue.length) return;
+    var tmi = _self.connectionQueue.shift();
+    tmi.connect();
+  }, 500);
 }
 
 Chat.prototype.checkLostMessages = function(id) {
@@ -55,26 +62,17 @@ Chat.prototype.checkLostMessages = function(id) {
         console.log("Error saving lines report.");
       }
     });
-    receiversArray.forEach(function(receiver) {
-      if(receiver.received) {
-        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
-          if( err || !saved ) {
-            console.log("Error saving lines report.");
-          }
-        });
-      }
-    });
-  } else {
-    receiversArray.forEach(function(receiver) {
-      if(!receiver.received) {
-        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
-          if( err || !saved ) {
-            console.log("Error saving lines report.");
-          }
-        });
-      }
-    });
   }
+
+  receiversArray.forEach(function(receiver) {
+    if(receiver.received) {
+      db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
+        if( err || !saved ) {
+          console.log("Error saving lines report.");
+        }
+      });
+    }
+  });
 
   if(percentLost > 0) {
     db.messages.save({ origin: { server: data.origin, ip: data.origin.split(':')[0], port: parseInt(data.origin.split(':')[1]) }, sent: new Date(data.sent), percentLost: percentLost, percentReceived: percentReceived, receivers: receiversArray }, function(err, saved) {
@@ -147,10 +145,10 @@ Chat.prototype.pingChat = function() {
         }
       }
       if(server.firstMessage === true) {
-        server.client.say(channel, "firstmessage "+name+" 0 0 v3");
+        server.client.privmsg(channel, "firstmessage "+name+" 0 0 v3");
       } else {
         var data = _self.generateMessageLostObject(name);
-        server.client.say(channel, name+" "+data.time+" "+data.id+" v3");
+        server.client.privmsg(channel, name+" "+data.time+" "+data.id+" v3");
       }
     }
   });
@@ -175,44 +173,61 @@ Chat.prototype.setup = function(server) {
 
   var channel = server.channel ? server.channel : '#'+config.irc.username;
 
-  var ircConfig = {
-    channels: [channel],
-    password: "oauth:"+config.irc.access_token,
-    port: server.port,
-    debug: false
-  }
-
   // We run two connections per server. One sender, One monitor
-  server.client = new irc.Client(server.host, config.irc.username, ircConfig);
-  server.clientMonitor = new irc.Client(server.host, config.irc.username, ircConfig);
+  server.client = new tmi({
+    host: server.host,
+    port: server.port,
+    nick: config.irc.username,
+    pass: "oauth:"+config.irc.access_token,
+    protocol: server.protocol
+  });
+  server.clientMonitor = new tmi({
+    host: server.host,
+    port: server.port,
+    nick: config.irc.username,
+    pass: "oauth:"+config.irc.access_token,
+    protocol: server.protocol
+  });
+
+  this.connectionQueue.push(server.client);
+  this.connectionQueue.push(server.clientMonitor);
 
   // If there's a connection error, mark the server offline
-  server.client.addListener('error', function() {
+  server.client.on('disconnected', function() {
     server.status = "offline";
+    _self.connectionQueue.push(server.client);
   });
-  server.clientMonitor.addListener('error', function() {
+  server.clientMonitor.on('disconnected', function() {
     server.status = "offline";
+    _self.connectionQueue.push(server.clientMonitor);
   });
 
   // When we get the MOTD (if we're disconnected), make sure we mark that we haven't joined yet.
-  server.client.addListener('motd', function() {
+  server.client.on('connected', function() {
     server.joined = false;
     server.firstMessage = true;
+    server.client.join(channel);
   });
-  server.clientMonitor.addListener('motd', function() {
+  server.clientMonitor.on('connected', function() {
     server.joined = false;
+    server.clientMonitor.join(channel);
   });
 
   // When we get NAMES, mark the channel as joined
-  server.client.addListener('names'+channel, function() {
+  server.client.on('join', function() {
     server.joined = true;
   });
-  server.clientMonitor.addListener('names'+channel, function() {
+  server.clientMonitor.on('join', function() {
     server.monitorJoined = true;
   });
 
   // Parse incoming messages to test for "ping"
-  server.clientMonitor.addListener('message'+channel, function (from, message) {
+  server.clientMonitor.on('privmsg', function(data) {
+    var from = data.nick;
+    var message = data.message;
+    var target = data.target;
+
+    if(channel !== target) return;
     if(from !== config.irc.username) return;
 
     var timeNow = Date.now();
@@ -274,10 +289,10 @@ Chat.prototype.setup = function(server) {
   setInterval(function() {
     // When joins fail, we need to try to join the channel again.
     if(server.monitorJoined === false) {
-      server.clientMonitor.send('JOIN', channel);
+      server.clientMonitor.join(channel);
     }
     if(server.joined === false) {
-      server.client.send('JOIN', channel);
+      server.client.join(channel);
     }
 
     // If the connection seems inactive, mark the server as offline.
@@ -296,8 +311,8 @@ Chat.prototype.setup = function(server) {
 
       // Wait a short time before reconnecting.
       setTimeout(function() {
-        server.client.connect();
-        server.clientMonitor.connect();
+        _self.connectionQueue.push(server.client);
+        _self.connectionQueue.push(server.clientMonitor);
       }, 5000);
     }
   }, 300000);

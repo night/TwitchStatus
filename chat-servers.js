@@ -1,42 +1,68 @@
 var config = require('./config.json'),
     request = require('request');
 
-var chatServers = function(servers, callback) {
-  request({
-    url: "https://api.twitch.tv/api/channels/"+config.irc.username+"/chat_properties",
-    json: true,
-    timeout: 60000
-  }, function(error, response, data) {
-    if(error || !data.chat_servers || data.eventchat || data.devchat) {
-      callback(servers);
-      return;
-    }
+String.prototype.capitalize = function() {
+  return this.charAt(0).toUpperCase() + this.slice(1);
+};
 
-    data.chat_servers.forEach(function(server) {
-      var host = server.split(':')[0],
-          port = parseInt(server.split(':')[1]);
+var parseServers = function(res) {
+  var uniqueHosts = [];
+  var servers = [];
+
+  ['servers', 'websockets_servers'].forEach(function(type) {
+    if(!res[type]) return servers;
+
+    res[type].forEach(function(server) {
+      var host = server.split(':')[0];
+      var port = parseInt(server.split(':')[1]);
+
+      if(uniqueHosts.indexOf(host + ':6667') === -1) {
+        uniqueHosts.push(host + ':6667');
+        servers.push({
+          name: host + ":6667",
+          type: "chat",
+          cluster: res.cluster,
+          protocol: "irc",
+          description: res.cluster !== "main" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
+          host: host,
+          port: 6667
+        });
+      }
+
+      if(uniqueHosts.indexOf(server) > -1) return;
+      uniqueHosts.push(server);
 
       servers.push({
-        name: host+":"+port,
+        name: host + ":" + port,
         type: "chat",
-        description: "Chat Server",
+        cluster: res.cluster,
+        protocol: type === "websockets_servers" ? "ws_irc" : "irc",
+        description: res.cluster !== "main" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
         host: host,
         port: port
       });
     });
+  });
 
-    var length = servers.length
-    for(var i=0; i<length; i++) {
-      var server = servers[i];
+  return servers;
+}
 
-      servers.push({
-        name: server.host+":"+6667,
-        type: "chat",
-        description: "Chat Server",
-        host: server.host,
-        port: 6667
-      });
+var chatServers = function(servers, callback) {
+  request({
+    url: "https://tmi.twitch.tv/servers",
+    qs: {
+      channel: config.irc.username,
+      kappa: Math.random()
+    },
+    json: true,
+    timeout: 60000
+  }, function(error, response, data) {
+    if(error || response.statusCode !== 200 || data.cluster !== 'main') {
+      callback(servers);
+      return;
     }
+
+    servers = servers.concat(parseServers(data));
 
     callback(servers);
   });
@@ -44,27 +70,20 @@ var chatServers = function(servers, callback) {
 
 var eventChatServers = function(servers, callback) {
   request({
-    url: "https://api.twitch.tv/api/channels/riotgames/chat_properties",
+    url: "https://tmi.twitch.tv/servers",
+    qs: {
+      channel: 'riotgames',
+      kappa: Math.random()
+    },
     json: true,
     timeout: 60000
   }, function(error, response, data) {
-    if(error || !data.chat_servers || !data.eventchat || data.devchat) {
+    if(error || response.statusCode !== 200 || data.cluster !== 'event') {
       callback(servers);
       return;
     }
 
-    data.chat_servers.forEach(function(server) {
-      var host = server.split(':')[0],
-          port = parseInt(server.split(':')[1]);
-
-      servers.push({
-        name: host+":"+port,
-        type: "chat",
-        description: "Event Chat Server",
-        host: host,
-        port: port
-      });
-    });
+    servers = servers.concat(parseServers(data));
 
     callback(servers);
   });
@@ -72,28 +91,20 @@ var eventChatServers = function(servers, callback) {
 
 var groupChatServers = function(servers, callback) {
   request({
-    url: "https://chatdepot.twitch.tv/room_memberships?oauth_token="+config.irc.access_token,
+    url: "https://tmi.twitch.tv/servers",
+    qs: {
+      cluster: 'group',
+      kappa: Math.random()
+    },
     json: true,
     timeout: 60000
   }, function(error, response, data) {
-    if(error || !data.memberships || data.memberships.length === 0) {
+    if(error || response.statusCode !== 200 || data.cluster !== 'group') {
       callback(servers);
       return;
     }
 
-    data.memberships[0].room.servers.forEach(function(server) {
-      var host = server.split(':')[0],
-          port = parseInt(server.split(':')[1]);
-
-      servers.push({
-        name: host+":"+port,
-        type: "chat",
-        description: "Group Chat Server",
-        host: host,
-        port: port,
-        channel: '#'+data.memberships[0].room.irc_channel
-      });
-    });
+    servers = servers.concat(parseServers(data));
 
     callback(servers);
   });

@@ -20,7 +20,7 @@ HTTP.prototype.checkStatus = function() {
 
     setTimeout(function() {
       _self.checkWebAddress.call(_self, server.name, server.host, server.port, server.path);
-    }, t+=1000);
+    }, t += 1000);
   });
 }
 
@@ -28,10 +28,13 @@ HTTP.prototype.checkWebAddress = function(name, host, port, path) {
   var servers = this.servers,
       startTime = Date.now(),
       path = path || '/',
-      url = "http"+((port===443)?"s":"")+"://"+host+":"+port+path;
+      url = "http" + ((port === 443) ? "s" : "") + "://" + host + ":" + port + path;
 
   request.get({
-    url: url+(url.indexOf('?') === -1 ? '?' : '&')+Math.random(),
+    url: url,
+    qs: {
+      kappa: Math.random()
+    },
     timeout: 30000
   }, function(err, res, body) {
     if(!err && res.statusCode === 200) {

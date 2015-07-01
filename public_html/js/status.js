@@ -39,7 +39,7 @@ function updateStatus() {
             data.chat.servers.forEach(function(d){
                 var serverName = d.server.replace(/(\.|\(|\)|:)/g,"_");
                 var chatType = (/ Chat Server$/.test(d.description)) ? d.description.match(/^([a-zA-Z]+) Chat Server$/)[1].toLowerCase() : "main";
-                $("#chat_"+chatType+" tbody").append('<tr data-server="'+serverName+'"><td>'+d.server.replace(/:([0-9]+)/g," (Port $1)")+(d.description!=='Chat Server'?' &mdash; '+d.description:'')+' <span class="alerts" style="float: right;"></span></td><td class="status" style="text-align:center;">Loading..</td><td class="errors" style="text-align:center;">Loading..</td><td class="lag" style="text-align:center;">Loading..</td><td class="graph" style="vertical-align:middle;">Loading..</td></tr>');
+                $("#chat_"+chatType+" tbody").append('<tr data-server="'+serverName+'"><td>'+d.server.replace(/:([0-9]+)/g," (Port $1)")+(d.description!=='Chat Server'?' &mdash; '+d.description:'')+' <span class="alerts" style="float: right;"></span></td><td class="protocol" style="text-align:center;">Loading..</td><td class="status" style="text-align:center;">Loading..</td><td class="errors" style="text-align:center;">Loading..</td><td class="lag" style="text-align:center;">Loading..</td><td class="graph" style="vertical-align:middle;">Loading..</td></tr>');
             });
         }
         data.web.servers.forEach(function(d){
@@ -135,6 +135,7 @@ function updateStatus() {
             $server.children("td").children(".alerts").html('');
             $server.children("td.status").html(d.status);
             $server.children("td.errors").html(d.errors);
+            $server.children("td.protocol").html(d.protocol);
             $server.children("td.lag").html(d.lag);
             var $graph = $('<span/>');
             $graph.data('color', lagColor);

@@ -24,96 +24,78 @@ module.exports = function(main) {
     });
   });
 
-  // External Reporting
-  app.get('/api/report', function(req, res) {
-    if(!req.param("type")) {
-      res.send(400, "No type?");
-      return;
-    }
-    if(!req.param("server")) {
-      res.send(400, "No server?");
-      return;
-    }
-    if(!req.param("kind")) {
-      res.send(400, "No kind?");
-      return;
-    }
+  var getAlerts = function(type) {
+    var alerts = [];
 
-    var reportedServer = req.param("server");
-    if(!reportedServer.match(/^(.*):(80|443|6667)$/)) {
-      reportedServer = reportedServer+":80";
-    }
+    Object.keys(servers).forEach(function(name) {
+      var server = servers[name];
 
-    db.reports.save({ type: req.param("type").toLowerCase(), kind: req.param("kind").toLowerCase(), server: reportedServer.toLowerCase(), logged: new Date() }, function(err, saved) {
-      if( err || !saved ) {
-        res.send(500, "Error saving data");
-      } else {
-        res.send(200, "Report received");
+      if(server.type !== type) return;
+
+      if(server.alerts.length > 0) {
+        server.alerts.forEach(function(alert) {
+          alerts.push({
+            server: name,
+            type: alert.type,
+            message: alert.message
+          });
+        });
       }
     });
-  });
+
+    return alerts;
+  }
+
+  var formatServers = function(type) {
+    var formatted = [];
+
+    Object.keys(servers).forEach(function(name) {
+      var server = servers[name];
+
+      if(server.type !== type) return;
+
+      formatted.push({
+        server: name,
+        cluster: server.cluster,
+        host: server.type !== "chat" ? server.host : undefined,
+        ip: server.type === "chat" ? server.host : undefined,
+        port: server.port,
+        protocol: server.protocol,
+        description: server.description,
+        status: server.status,
+        loadTime: server.type !== "chat" ? server.lag : undefined,
+        errors: server.errors ? server.errors.total : undefined,
+        lag: server.type === "chat" ? server.lag : undefined,
+        pings: server.type === "chat" ? server.pings : undefined
+      });
+    });
+
+    return formatted;
+  };
 
   app.get('/api/status', function(req, res) {
-    if(req.param("type") && req.param("type") === "web") {
-      var reply = [];
-      Object.keys(servers).forEach(function(name) {
-        var server = servers[name];
-        if(server.type !== "web") return;
-        reply.push({ server: name, host: server.host, port: server.port, description: server.description, status: server.status, loadTime: server.lag });
-      });
-      res.jsonp(reply);
-    } else if(req.param("type") && req.param("type") === "ingest") {
-      var reply = [];
-      Object.keys(servers).forEach(function(name) {
-        var server = servers[name];
-        if(server.type !== "ingest") return;
-        reply.push({ server: name, host: server.host, port: server.port, description: server.description, status: server.status });
-      });
-      res.jsonp(reply);
-    } else if(req.param("type") && req.param("type") === "chat") {
-      var reply = [];
-      Object.keys(servers).forEach(function(name) {
-        var server = servers[name];
-        if(server.type !== "chat") return;
-        reply.push({ server: name, ip: server.host, port: server.port, description: server.description, status: server.status, errors: server.errors.total, lag: server.lag });
-      });
-      res.jsonp(reply);
-    } else {
-      var reply = {};
-      reply.web = {
-        alerts: [],
-        servers: []
-      };
-      reply.ingest = {
-        alerts: [],
-        servers: []
-      };
-      reply.chat = {
-        alerts: [],
-        servers: []
-      };
-      Object.keys(servers).forEach(function(name) {
-        var server = servers[name];
-        if(server.type === "web") {
-          reply.web.servers.push({ server: name, host: server.host, port: server.port, description: server.description, status: server.status, loadTime: server.lag });
-        } else if(server.type === "ingest") {
-          reply.ingest.servers.push({ server: name, host: server.host, port: server.port, description: server.description, status: server.status });
-        } else if(server.type === "chat") {
-          if(server.alerts.length > 0) {
-            server.alerts.forEach(function(alert) {
-              reply.chat.alerts.push({
-                server: name,
-                type: alert.type,
-                message: alert.message
-              });
-            });
+    switch(req.query.type) {
+      case "web":
+      case "ingest":
+      case "chat":
+        res.jsonp(formatServers(req.query.type));
+        break;
+      default:
+        res.jsonp({
+          web: {
+            alerts: [],
+            servers: formatServers('web')
+          },
+          ingest: {
+            alerts: [],
+            servers: formatServers('ingest')
+          },
+          chat: {
+            alerts: getAlerts('chat'),
+            servers: formatServers('chat')
           }
-          
-          reply.chat.servers.push({ server: name, ip: server.host, port: server.port, description: server.description, status: server.status, errors: server.errors.total, lag: server.lag, pings: server.pings });
-        }
-
-      });
-      res.jsonp(reply);
+        });
+        return;
     }
   });
 
