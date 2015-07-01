@@ -62,17 +62,26 @@ Chat.prototype.checkLostMessages = function(id) {
         console.log("Error saving lines report.");
       }
     });
+    receiversArray.forEach(function(receiver) {
+      if(receiver.received) {
+        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
+          if( err || !saved ) {
+            console.log("Error saving lines report.");
+          }
+        });
+      }
+    });
+  } else {
+    receiversArray.forEach(function(receiver) {
+      if(!receiver.received) {
+        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
+          if( err || !saved ) {
+            console.log("Error saving lines report.");
+          }
+        });
+      }
+    });
   }
-
-  receiversArray.forEach(function(receiver) {
-    if(receiver.received) {
-      db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
-        if( err || !saved ) {
-          console.log("Error saving lines report.");
-        }
-      });
-    }
-  });
 
   if(percentLost > 0) {
     db.messages.save({ origin: { server: data.origin, ip: data.origin.split(':')[0], port: parseInt(data.origin.split(':')[1]) }, sent: new Date(data.sent), percentLost: percentLost, percentReceived: percentReceived, receivers: receiversArray }, function(err, saved) {
