@@ -69,6 +69,9 @@ IRC.prototype._ircConnect = function() {
   socket.on('error', function() {
     _self._onClose();
   });
+  socket.on('timeout', function() {
+    _self._onTimeout();
+  });
 
   this._socket = socket;
 };
@@ -82,17 +85,18 @@ IRC.prototype.disconnect = function() {
   if(!this._connected) return;
 
   this._connected = false;
-  this._socket.close();
+  try {
+    this._socket.close();
+  } catch(e) { }
 };
 
 IRC.prototype.reconnect = function() {
-  if(this._connected) return;
-
   try {
     this._socket.close();
   } catch(e) { }
 
   delete this._socket;
+  
   this.connect();
 };
 
@@ -150,10 +154,15 @@ IRC.prototype._onClose = function() {
   this.emit('disconnected');
 };
 
+IRC.prototype._onTimeout = function() {
+  this._connected = false;
+  this.emit('disconnected');
+};
+
 // IRC Commands
 
 IRC.prototype._send = function() {
-  if(!this._connected) return;
+  if(!this._connected || !this._socket) return;
 
   if(this.options.protocol === 'irc') {
     this._socket.write(Array.prototype.join.call(arguments, ' ') + '\r\n');

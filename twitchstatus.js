@@ -12,6 +12,7 @@ TwitchStatus = function() {
 
   process.on('uncaughtException', function(err) {
     console.log('Caught exception: ' + err);
+    console.log(err.stack);
   });
 
   this.app.listen(6699);
@@ -84,8 +85,8 @@ TwitchStatus.prototype.cleanup = function() {
       past5 = (current - 300) * 1000,
       limit = new Date(past5);
 
-  this.db.reports.remove({ logged: { $lt: limit } });
-  this.db.messages.remove({ logged: { $lt: limit } });
+  this.db.reports.remove({ logged: { $lt: limit } }, function() {});
+  this.db.messages.remove({ logged: { $lt: limit } }, function() {});
 }
 
 new TwitchStatus();

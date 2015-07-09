@@ -213,11 +213,13 @@ Chat.prototype.setup = function(server) {
 
   // When we get the MOTD (if we're disconnected), make sure we mark that we haven't joined yet.
   server.client.on('connected', function() {
+    console.log("%s connected on port %d over %s", server.host, server.port, server.protocol);
     server.joined = false;
     server.firstMessage = true;
     server.client.join(channel);
   });
   server.clientMonitor.on('connected', function() {
+    console.log("%s (monitor) connected on port %d over %s", server.host, server.port, server.protocol);
     server.joined = false;
     server.clientMonitor.join(channel);
   });
@@ -355,7 +357,7 @@ Chat.prototype.updateStats = function() {
       $gte: past5Date,
       $lt: currentDate
     }
-  },function(error, reports){
+  },function(error, reports) {
     if(!reports) return;
 
     // Increment error counts
