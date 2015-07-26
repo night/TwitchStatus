@@ -203,10 +203,12 @@ Chat.prototype.setup = function(server) {
 
   // If there's a connection error, mark the server offline
   server.client.on('disconnected', function() {
+    console.log("%s disconnected on port %d over %s", server.host, server.port, server.protocol);
     server.status = "offline";
     _self.connectionQueue.push(server.client);
   });
   server.clientMonitor.on('disconnected', function() {
+    console.log("%s (monitor) disconnected on port %d over %s", server.host, server.port, server.protocol);
     server.status = "offline";
     _self.connectionQueue.push(server.clientMonitor);
   });

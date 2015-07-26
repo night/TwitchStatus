@@ -85,19 +85,24 @@ IRC.prototype.disconnect = function() {
   if(!this._connected) return;
 
   this._connected = false;
-  try {
-    this._socket.close();
-  } catch(e) { }
+  this._closeSocket();
 };
 
 IRC.prototype.reconnect = function() {
+  this._closeSocket();
+  this.connect();
+};
+
+IRC.prototype._closeSocket = function() {
   try {
-    this._socket.close();
+    if(this.options.protocol === 'irc') {
+      this._socket.destroy();
+    } else {
+      this._socket.close();
+    }
   } catch(e) { }
 
   delete this._socket;
-  
-  this.connect();
 };
 
 // IRC Parser
