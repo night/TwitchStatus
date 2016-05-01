@@ -4,7 +4,6 @@ var chat = require('./chat'),
     express = require('express'),
     http = require('./http'),
     ingests = require('./ingests'),
-    mongojs = require('mongojs'),
     twitter = require('./twitter');
 
 TwitchStatus = function() {
@@ -20,8 +19,6 @@ TwitchStatus = function() {
   this.app.use(express.static(__dirname + '/public_html'));
   this.app.use("/", express.static(__dirname + '/public_html/index.html'));
 
-  this.db = mongojs(config.mongodb.database_url, config.mongodb.collections);
-
   this._servers = [
     { name: "Twitch.TV", type: "web", description: "Twitch's main website", host: "www.twitch.tv", path: "/", port: 80 },
     { name: "API.Twitch.TV", type: "web", description: "Twitch's external endpoint for data retrieval", host: "api.twitch.tv", path: "/kraken/base", port: 443 },
@@ -29,6 +26,9 @@ TwitchStatus = function() {
     { name: "ChatDepot.Twitch.TV", type: "web", description: "Group Chat API", host: "chatdepot.twitch.tv", path: "/room_memberships?oauth_token="+config.irc.access_token, port: 443 }
   ];
   this.servers = {};
+
+  this.reports = [];
+  this.lostMessages = [];
   
   this.chat = new chat(this);
   this.http = new http(this);
@@ -47,7 +47,7 @@ TwitchStatus = function() {
 
   setInterval(function() {
     _self.cleanup();
-  }, 600000);
+  }, 30000);
 }
 
 TwitchStatus.prototype.setup = function() {
@@ -65,6 +65,7 @@ TwitchStatus.prototype.setup = function() {
       cluster: server.cluster || undefined,
       channel: server.channel || undefined,
       protocol: server.protocol || undefined,
+      secure: server.secure || false,
       status: "unknown",
       lag: 999999
     }
@@ -85,8 +86,17 @@ TwitchStatus.prototype.cleanup = function() {
       past5 = (current - 300) * 1000,
       limit = new Date(past5);
 
-  this.db.reports.remove({ logged: { $lt: limit } }, function() {});
-  this.db.messages.remove({ logged: { $lt: limit } }, function() {});
+  for(var i = this.reports.length - 1; i >= 0; i--) {
+    if(this.reports[i].logged < limit) {
+      this.reports.splice(i, 1);
+    }
+  }
+
+  for(var i = this.lostMessages.length - 1; i >= 0; i--) {
+    if(this.lostMessages[i].sent < limit) {
+      this.lostMessages.splice(i, 1);
+    }
+  }
 }
 
 new TwitchStatus();

@@ -3,6 +3,8 @@ var config = require('./config.json'),
 
 var Chat = function(main) {
   this.db = main.db;
+  this.storedReports = main.reports;
+  this.storedLostMessages = main.lostMessages;
   this.servers = main.servers;
 
   this.connectionQueue = [];
@@ -10,9 +12,9 @@ var Chat = function(main) {
   this.lostMessages = {};
 
   var _self = this;
-  setInterval(function() {
+  /*setInterval(function() {
     _self.updateStats();
-  }, 30000);
+  }, 30000);*/
   setInterval(function() {
     _self.pingChat();
   }, 10000);
@@ -57,39 +59,22 @@ Chat.prototype.checkLostMessages = function(id) {
 
   // If the message was completely lost or if the receiver only received its own messages, then the server itself is having issues.
   if(percentLost === 100 || (receivers.length > 3 && received === receivedFromSelf)) {
-    db.reports.save({type: "chat", kind: "lines", server: data.origin, logged: new Date() }, function(err, saved) {
-      if( err || !saved ) {
-        console.log("Error saving lines report.");
-      }
-    });
+    this.storedReports.push({ type: "chat", kind: "lines", server: data.origin, logged: new Date() });
     receiversArray.forEach(function(receiver) {
       if(receiver.received) {
-        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
-          if( err || !saved ) {
-            console.log("Error saving lines report.");
-          }
-        });
+        this.storedReports.push({ type: "chat", kind: "lines", server: receiver.server, logged: new Date() });
       }
-    });
+    }.bind(this));
   } else {
     receiversArray.forEach(function(receiver) {
       if(!receiver.received) {
-        db.reports.save({type: "chat", kind: "lines", server: receiver.server, logged: new Date() }, function(err, saved) {
-          if( err || !saved ) {
-            console.log("Error saving lines report.");
-          }
-        });
+        this.storedReports.push({ type: "chat", kind: "lines", server: receiver.server, logged: new Date() });
       }
-    });
+    }.bind(this));
   }
 
   if(percentLost > 0) {
-    db.messages.save({ origin: { server: data.origin, ip: data.origin.split(':')[0], port: parseInt(data.origin.split(':')[1]) }, sent: new Date(data.sent), percentLost: percentLost, percentReceived: percentReceived, receivers: receiversArray }, function(err, saved) {
-      if( err || !saved ) {
-        console.log(err);
-        console.log("Error saving messages report.");
-      }
-    });
+    this.storedLostMessages.push({ origin: { server: data.origin, ip: data.origin.split(':')[0], port: parseInt(data.origin.split(':')[1]) }, sent: new Date(data.sent), percentLost: percentLost, percentReceived: percentReceived, receivers: receiversArray });
   }
 
   // Remove message id
@@ -188,14 +173,16 @@ Chat.prototype.setup = function(server) {
     port: server.port,
     nick: config.irc.username,
     pass: "oauth:"+config.irc.access_token,
-    protocol: server.protocol
+    protocol: server.protocol,
+    secure: server.secure
   });
   server.clientMonitor = new tmi({
     host: server.host,
     port: server.port,
     nick: config.irc.username,
     pass: "oauth:"+config.irc.access_token,
-    protocol: server.protocol
+    protocol: server.protocol,
+    secure: server.secure
   });
 
   this.connectionQueue.push(server.client);
@@ -208,7 +195,7 @@ Chat.prototype.setup = function(server) {
     _self.connectionQueue.push(server.client);
   });
   server.clientMonitor.on('disconnected', function() {
-    console.log("%s (monitor) disconnected on port %d over %s", server.host, server.port, server.protocol);
+    console.log("%s disconnected on port %d over %s", server.host, server.port, server.protocol);
     server.status = "offline";
     _self.connectionQueue.push(server.clientMonitor);
   });
@@ -270,7 +257,7 @@ Chat.prototype.setup = function(server) {
       // timeThen is the time the message was sent
       var timeThen = parseInt(message.split(" ")[1]);
 
-      server.pings.push(timeNow-timeThen-40);
+      server.pings.push(timeNow-timeThen-75);
 
       // Calculate average ping over past minute
       var avgPing = 0;
@@ -347,72 +334,56 @@ Chat.prototype.updateStats = function() {
     server.alerts = [];
   });
 
-  var currentTime = Math.round(Date.now() / 1000),
-      past5Time = (currentTime - 300) * 1000,
-      past60Time = (currentTime - 60) * 1000;
+  // Increment error counts
+  this.storedReports.forEach(function(report) {
+    if(!servers[report.server]) return;
 
-  var currentDate = new Date(),
-      past5Date = new Date(past5Time);
-
-  db.reports.find({
-    logged: {
-      $gte: past5Date,
-      $lt: currentDate
+    if(new Date(report.logged).getTime() > past60Time) {
+      if(report.type === "chat" && report.kind === "join") {
+        servers[report.server].errors.join++;
+      } else if(report.type === "chat" && report.kind === "lines") {
+        servers[report.server].errors.lines++;
+      }
     }
-  },function(error, reports) {
-    if(!reports) return;
+    servers[report.server].errors.total++;
+  });
 
-    // Increment error counts
-    reports.forEach(function(report) {
-      if(!servers[report.server]) return;
+  // Generate alerts and set server statuses
+  Object.keys(servers).forEach(function(name) {
+    var server = servers[name];
+    if(server.type !== "chat") return;
 
-      if(new Date(report.logged).getTime() > past60Time) {
-        if(report.type === "chat" && report.kind === "join") {
-          servers[report.server].errors.join++;
-        } else if(report.type === "chat" && report.kind === "lines") {
-          servers[report.server].errors.lines++;
-        }
+    var type;
+    if(server.errors.join > 0) {
+      if(server.errors.join > 50) {
+        type = "important";
+      } else if(server.errors.join > 25) {
+        type = "warning";
+      } else {
+        type = "info";
       }
-      servers[report.server].errors.total++;
-    });
-
-    // Generate alerts and set server statuses
-    Object.keys(servers).forEach(function(name) {
-      var server = servers[name];
-      if(server.type !== "chat") return;
-
-      var type;
-      if(server.errors.join > 0) {
-        if(server.errors.join > 50) {
-          type = "important";
-        } else if(server.errors.join > 25) {
-          type = "warning";
-        } else {
-          type = "info";
-        }
-        server.alerts.push({ type: type, message: "Joins Failing" });
+      server.alerts.push({ type: type, message: "Joins Failing" });
+    }
+    if(server.errors.lines > 0) {
+      if(server.errors.lines > 12) {
+        type = "important";
+      } else if(server.errors.lines > 6) {
+        type = "warning";
+      } else {
+        type = "info";
       }
-      if(server.errors.lines > 0) {
-        if(server.errors.lines > 12) {
-          type = "important";
-        } else if(server.errors.lines > 6) {
-          type = "warning";
-        } else {
-          type = "info";
-        }
-        server.alerts.push({ type: type, message: "Messages Lost" });
-      }
+      server.alerts.push({ type: type, message: "Messages Lost" });
+    }
 
-      // If messages take longer than 3 seconds to go through, the server is slow.
-      // If the server has more than 20 errors, the server is slow.
-      if(server.status !== "offline") {
-        if (server.errors.total <= 20 && server.lag <= 3000) {
-          server.status = "online";
-        } else if (server.errors.total >= 20) {
-          server.status = "slow";
-        }
+    // If messages take longer than 3 seconds to go through, the server is slow.
+    // If the server has more than 20 errors, the server is slow.
+    if(server.status !== "offline") {
+      if (server.errors.total <= 20 && server.lag <= 3000) {
+        server.status = "online";
+      } else if (server.errors.total >= 20) {
+        server.status = "slow";
       }
-    });
+    }
   });
 }
 

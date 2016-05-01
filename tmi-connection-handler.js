@@ -1,5 +1,6 @@
 var EventEmitter = require('events').EventEmitter;
 var net = require('net');
+var tls = require('tls');
 var parse = require('irc-message').parse;
 var util = require('util');
 var ws = require('ws');
@@ -39,7 +40,11 @@ util.inherits(IRC, EventEmitter);
 
 IRC.prototype._wsConnect = function() {
   var _self = this;
-  var socket = new ws('ws://' + this.options.host + ':' + this.options.port, 'irc');
+  var protocol = this.options.secure ? 'wss:' : 'ws:';
+  var socket = new ws(protocol + '//' + this.options.host + ':' + this.options.port, 'irc', {
+    localAddress: this.options.localAddress,
+    rejectUnauthorized: false
+  });
 
   socket.on('open', function() {
     _self._onOpen();
@@ -50,13 +55,22 @@ IRC.prototype._wsConnect = function() {
   socket.on('close', function() {
     _self._onClose();
   });
+  socket.on('error', function() {
+    _self._onClose();
+  });
 
   this._socket = socket;
 };
 
 IRC.prototype._ircConnect = function() {
   var _self = this;
-  var socket = net.connect(this.options.port, this.options.host, function() {
+  var protocol = this.options.secure ? tls : net;
+  var socket = protocol.connect({
+    host: this.options.host,
+    port: this.options.port,
+    localAddress: this.options.localAddress,
+    rejectUnauthorized: false
+  }, function() {
     _self._onOpen();
   });
 

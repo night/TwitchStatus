@@ -1,27 +1,13 @@
 module.exports = function(main) {
 
   var app = main.app,
-      db = main.db,
+      lostMessages = main.lostMessages,
       servers = main.servers,
       twitter = main.twitter;
 
   // Dropped messages in past 5 minutes
   app.get('/api/messages', function(req, res) {
-    var currentTime = Math.round(Date.now() / 1000),
-        past5Time = (currentTime - 300) * 1000,
-        past60Time = (currentTime - 60) * 1000;
-
-    var currentDate = new Date(),
-        past5Date = new Date(past5Time);
-
-    db.messages.find({
-      sent: {
-        $gte: past5Date,
-        $lt: currentDate
-      }
-    }, function(error, messages) {
-      res.jsonp(200, messages);
-    });
+    res.jsonp(lostMessages);
   });
 
   var getAlerts = function(type) {
@@ -59,6 +45,7 @@ module.exports = function(main) {
         cluster: server.cluster,
         host: server.type !== "chat" ? server.host : undefined,
         ip: server.type === "chat" ? server.host : undefined,
+        secure: server.secure,
         port: server.port,
         protocol: server.protocol,
         description: server.description,
@@ -106,6 +93,6 @@ module.exports = function(main) {
 
   // Catch-all not found
   app.get('*', function(req, res){
-    res.send(404, '404 Not Found');
+    res.status(404).send('404 Not Found');
   });
 }

@@ -5,12 +5,12 @@
   "description": "Unofficial Twitch service status",
   "license": "MIT",
   "dependencies": {
-    "express": "~4.2.0",
-    "express-toobusy": "0.0.2",
+    "async": "^2.0.0-rc.1",
+    "express": "~4.13.4",
+    "express-toobusy": "0.0.3",
     "irc-message": "^3.0.1",
-    "mongojs": ">=0.13.0",
-    "request": ">=2.34.0",
-    "twitter": "~0.2.9",
-    "ws": "^0.7.2"
+    "request": ">=2.69.0",
+    "twitter": "~1.2.5",
+    "ws": "^1.0.1"
   }
 }

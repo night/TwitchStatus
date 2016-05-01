@@ -38,8 +38,8 @@ function updateStatus() {
             });
             data.chat.servers.forEach(function(d){
                 var serverName = d.server.replace(/(\.|\(|\)|:)/g,"_");
-                var chatType = (/ Chat Server$/.test(d.description)) ? d.description.match(/^([a-zA-Z]+) Chat Server$/)[1].toLowerCase() : "main";
-                $("#chat_"+chatType+" tbody").append('<tr data-server="'+serverName+'"><td>'+d.server.replace(/:([0-9]+)/g," (Port $1)")+(d.description!=='Chat Server'?' &mdash; '+d.description:'')+' <span class="alerts" style="float: right;"></span></td><td class="protocol" style="text-align:center;">Loading..</td><td class="status" style="text-align:center;">Loading..</td><td class="errors" style="text-align:center;">Loading..</td><td class="lag" style="text-align:center;">Loading..</td><td class="graph" style="vertical-align:middle;">Loading..</td></tr>');
+                var chatType = d.cluster;
+                $("#chat_"+chatType+" tbody").append('<tr data-server="'+serverName+'"><td>'+d.server.replace(/:([0-9]+)/g," (Port $1") + (d.secure ? ', Secure)' : ')') +(d.description!=='Chat Server'?' &mdash; '+d.description:'')+' <span class="alerts" style="float: right;"></span></td><td class="protocol" style="text-align:center;">Loading..</td><td class="status" style="text-align:center;">Loading..</td><td class="errors" style="text-align:center;">Loading..</td><td class="lag" style="text-align:center;">Loading..</td><td class="graph" style="vertical-align:middle;">Loading..</td></tr>');
             });
         }
         data.web.servers.forEach(function(d){
@@ -84,7 +84,6 @@ function updateStatus() {
             if(d.status === "online") {
                 d.status = '<span class="label label-success">Online</span>';
             } else if(d.status === "offline") {
-                if(d.port !== 6667) disruption++;
                 offline = true;
                 d.status = '<span class="label label-important">Offline</span>';
             } else if(d.status === "slow") {
@@ -130,7 +129,7 @@ function updateStatus() {
                 d.pings = [0,0];
             }
             var serverName = d.server.replace(/(\.|\(|\)|:)/g,"_"),
-                chatType = (/ Chat Server$/.test(d.description)) ? d.description.match(/^([a-zA-Z]+) Chat Server$/)[1].toLowerCase() : "main";
+                chatType = d.cluster;
                 $server = $("#chat_"+chatType+" tbody").children("tr[data-server='"+serverName+"']");
             $server.children("td").children(".alerts").html('');
             $server.children("td.status").html(d.status);

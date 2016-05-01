@@ -1,53 +1,92 @@
 var config = require('./config.json'),
-    request = require('request');
+    request = require('request'),
+    dns = require('dns'),
+    async = require('async');
 
 String.prototype.capitalize = function() {
   return this.charAt(0).toUpperCase() + this.slice(1);
 };
 
-var parseServers = function(res) {
+var parseServers = function(res, callback) {
   var uniqueHosts = [];
   var servers = [];
 
-  ['servers', 'websockets_servers'].forEach(function(type) {
-    if(!res[type]) return servers;
+  async.each(['servers', 'websockets_servers'], function(type, callback) {
+    if(!res[type]) return callback();
 
-    res[type].forEach(function(server) {
-      var host = server.split(':')[0];
-      var port = parseInt(server.split(':')[1]);
+    async.each(res[type], function(server, callback) {
+      var subServers = [];
 
-      if(uniqueHosts.indexOf(host + ':6667') === -1) {
-        uniqueHosts.push(host + ':6667');
-        servers.push({
-          name: host + ":6667",
-          type: "chat",
-          cluster: res.cluster,
-          protocol: "irc",
-          description: res.cluster !== "main" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
-          host: host,
-          port: 6667
-        });
-      }
+      async.waterfall([
+        function(callback) {
+          var host = server.split(':')[0];
+          var port = parseInt(server.split(':')[1]);
 
-      if(uniqueHosts.indexOf(server) > -1) return;
-      uniqueHosts.push(server);
+          if(/^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$/.test(host)) {
+            subServers.push({
+              host: host,
+              port: port
+            });
+            return callback();
+          }
 
-      servers.push({
-        name: host + ":" + port,
-        type: "chat",
-        cluster: res.cluster,
-        protocol: type === "websockets_servers" ? "ws_irc" : "irc",
-        description: res.cluster !== "main" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
-        host: host,
-        port: port
-      });
-    });
+          dns.lookup(host, {
+            all: true
+          }, function(err, hosts) {
+            if(err) return callback();
+
+            subServers = subServers.concat(hosts.map(function(h) {
+              return {
+                host: h.address,
+                port: port
+              };
+            }));
+
+            callback();
+          });
+        },
+        function(callback) {
+          subServers.forEach(function(server) {
+            if(server.port === 6667) {
+              subServers.push({
+                host: server.host,
+                port: 6697
+              });
+            } else if(server.port === 80) {
+              subServers.push({
+                host: server.host,
+                port: 443
+              });
+            }
+          });
+          subServers.forEach(function(server) {
+            var hostPort = server.host + ':' + server.port;
+
+            if(uniqueHosts.indexOf(hostPort) > -1) return;
+            uniqueHosts.push(hostPort);
+
+            servers.push({
+              name: hostPort,
+              type: "chat",
+              cluster: res.cluster,
+              protocol: type === "websockets_servers" ? "ws_irc" : "irc",
+              description: res.cluster !== "aws" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
+              host: server.host,
+              port: server.port,
+              secure: [443, 6697].indexOf(server.port) > -1
+            });
+          });
+
+          callback();
+        }
+      ], callback);
+    }, callback);
+  }, function() {
+    callback(servers);
   });
-
-  return servers;
 }
 
-var chatServers = function(servers, callback) {
+var chatServers = function(callback) {
   request({
     url: "https://tmi.twitch.tv/servers",
     qs: {
@@ -57,69 +96,23 @@ var chatServers = function(servers, callback) {
     json: true,
     timeout: 60000
   }, function(error, response, data) {
-    if(error || response.statusCode !== 200 || data.cluster !== 'main') {
+    if(error || response.statusCode !== 200 || data.cluster !== 'aws') {
       callback(servers);
       return;
     }
 
-    servers = servers.concat(parseServers(data));
-
-    callback(servers);
-  });
-}
-
-var eventChatServers = function(servers, callback) {
-  request({
-    url: "https://tmi.twitch.tv/servers",
-    qs: {
-      channel: 'riotgames',
-      kappa: Math.random()
-    },
-    json: true,
-    timeout: 60000
-  }, function(error, response, data) {
-    if(error || response.statusCode !== 200 || data.cluster !== 'event') {
-      callback(servers);
-      return;
-    }
-
-    servers = servers.concat(parseServers(data));
-
-    callback(servers);
-  });
-}
-
-var groupChatServers = function(servers, callback) {
-  request({
-    url: "https://tmi.twitch.tv/servers",
-    qs: {
-      cluster: 'group',
-      kappa: Math.random()
-    },
-    json: true,
-    timeout: 60000
-  }, function(error, response, data) {
-    if(error || response.statusCode !== 200 || data.cluster !== 'group') {
-      callback(servers);
-      return;
-    }
-
-    servers = servers.concat(parseServers(data));
-
-    callback(servers);
+    parseServers(data, function(newServers) {
+      callback(newServers);
+    });
   });
 }
 
 module.exports = function(callback) {
-  chatServers([], function(servers) {
-    eventChatServers(servers, function(servers) {
-      groupChatServers(servers, function(servers) {
-        servers.sort(function(a, b) {
-          return a.port - b.port || a.host.localeCompare(b.host);
-        });
-
-        callback(servers);
-      });
+  chatServers(function(servers) {
+    servers.sort(function(a, b) {
+      return a.port - b.port || a.host.localeCompare(b.host);
     });
+
+    callback(servers);
   });
 }
