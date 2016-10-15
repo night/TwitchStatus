@@ -538,19 +538,24 @@ $(document).ready(function () {
         }]
     });
 
-    var socket = io.connect('http://198.245.61.154:9001/');
-    socket.on('connect', function () {
-        console.log("Connected to Socket Server");
-    });
+    var socket = new ReconnectingWebSocket('wss://sockets.betterttv.net/ws');
 
-    socket.on('ohai', function () {
-        console.log("Ready to receive data");
-    });
+    socket.onopen = function() {
+      console.log("Connected to Socket Server");
+      socket.send(JSON.stringify({
+        name: 'join_channel',
+        data: {
+          name: '@realtime_update'
+        }
+      }));
+    };
 
-    socket.on('realtime_update', function (d) {
+    socket.onmessage = function(d) {
+        d = JSON.parse(d.data);
+        if (d.name !== 'realtime_update') return;
         var x = (new Date()).getTime(),
-            y = d.totalChatLines;
+            y = d.data.totalChatLines;
 
         data.realtimeChatCounts.addPoint([x, y], true, true);
-    });
+    };
 });

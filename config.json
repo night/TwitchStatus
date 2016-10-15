@@ -1,6 +1,7 @@
 {
   "irc": {
     "username": "",
+    "client_id": "",
     "access_token": ""
   },
   "twitter": {
