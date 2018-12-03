@@ -68,9 +68,9 @@ var parseServers = function(res, callback) {
             servers.push({
               name: hostPort,
               type: "chat",
-              cluster: res.cluster,
+              cluster: "aws",
               protocol: type === "websockets_servers" ? "ws_irc" : "irc",
-              description: res.cluster !== "aws" ? res.cluster.capitalize() + " Chat Server" : "Chat Server",
+              description: "Chat Server",
               host: server.host,
               port: server.port,
               secure: [443, 6697].indexOf(server.port) > -1
@@ -96,8 +96,8 @@ var chatServers = function(callback) {
     json: true,
     timeout: 60000
   }, function(error, response, data) {
-    if(error || response.statusCode !== 200 || data.cluster !== 'aws') {
-      callback(servers);
+    if(error || response.statusCode !== 200) {
+      callback([]);
       return;
     }
 
