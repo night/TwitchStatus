@@ -1,14 +1,7 @@
 module.exports = function(main) {
 
   var app = main.app,
-      lostMessages = main.lostMessages,
-      servers = main.servers,
-      twitter = main.twitter;
-
-  // Dropped messages in past 5 minutes
-  app.get('/api/messages', function(req, res) {
-    res.jsonp(lostMessages);
-  });
+      servers = main.servers;
 
   var getAlerts = function(type) {
     var alerts = [];
@@ -84,11 +77,6 @@ module.exports = function(main) {
         });
         return;
     }
-  });
-
-  // Tweets about TwitchStatus for when outages occur
-  app.get('/api/tweets', function(req, res) {
-    res.json({ text: twitter.tweets.join(' | ') });
   });
 
   // Catch-all not found

@@ -1,4 +1,5 @@
 var request = require('request');
+var config = require('./config.json');
 
 var HTTP = function(main) {
   this.servers = main.servers;
@@ -34,6 +35,9 @@ HTTP.prototype.checkWebAddress = function(name, host, port, path) {
     url: url,
     qs: {
       kappa: Math.random()
+    },
+    headers: {
+      'Client-ID': config.irc.client_id,
     },
     timeout: 30000
   }, function(err, res, body) {

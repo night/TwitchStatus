@@ -6,7 +6,10 @@ module.exports = function(callback) {
     url: "https://api.twitch.tv/kraken/ingests",
     qs: {
       kappa: Math.random(),
-      client_id: config.irc.client_id
+    },
+    headers: {
+      'client-id': config.irc.client_id,
+      accept: 'application/vnd.twitchtv.v5+json',
     },
     json: true,
     timeout: 60000
