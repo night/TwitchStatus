@@ -10,6 +10,6 @@
     "express-toobusy": "0.0.3",
     "irc-message": "^3.0.1",
     "request": ">=2.69.0",
-    "ws": "^1.0.1"
+    "ws": "^7.2.0"
   }
 }
