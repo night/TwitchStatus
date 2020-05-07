@@ -1,37 +1,36 @@
-module.exports = function(main) {
-
+module.exports = function (main) {
   var app = main.app,
-      servers = main.servers;
+    servers = main.servers;
 
-  var getAlerts = function(type) {
+  var getAlerts = function (type) {
     var alerts = [];
 
-    Object.keys(servers).forEach(function(name) {
+    Object.keys(servers).forEach(function (name) {
       var server = servers[name];
 
-      if(server.type !== type) return;
+      if (server.type !== type) return;
 
-      if(server.alerts.length > 0) {
-        server.alerts.forEach(function(alert) {
+      if (server.alerts.length > 0) {
+        server.alerts.forEach(function (alert) {
           alerts.push({
             server: name,
             type: alert.type,
-            message: alert.message
+            message: alert.message,
           });
         });
       }
     });
 
     return alerts;
-  }
+  };
 
-  var formatServers = function(type) {
+  var formatServers = function (type) {
     var formatted = [];
 
-    Object.keys(servers).forEach(function(name) {
+    Object.keys(servers).forEach(function (name) {
       var server = servers[name];
 
-      if(server.type !== type) return;
+      if (server.type !== type) return;
 
       formatted.push({
         server: name,
@@ -46,15 +45,15 @@ module.exports = function(main) {
         loadTime: server.type !== "chat" ? server.lag : undefined,
         errors: server.errors ? server.errors.total : undefined,
         lag: server.type === "chat" ? server.lag : undefined,
-        pings: server.type === "chat" ? server.pings : undefined
+        pings: server.type === "chat" ? server.pings : undefined,
       });
     });
 
     return formatted;
   };
 
-  app.get('/api/status', function(req, res) {
-    switch(req.query.type) {
+  app.get("/api/status", function (req, res) {
+    switch (req.query.type) {
       case "web":
       case "ingest":
       case "chat":
@@ -64,23 +63,23 @@ module.exports = function(main) {
         res.jsonp({
           web: {
             alerts: [],
-            servers: formatServers('web')
+            servers: formatServers("web"),
           },
           ingest: {
             alerts: [],
-            servers: formatServers('ingest')
+            servers: formatServers("ingest"),
           },
           chat: {
-            alerts: getAlerts('chat'),
-            servers: formatServers('chat')
-          }
+            alerts: getAlerts("chat"),
+            servers: formatServers("chat"),
+          },
         });
         return;
     }
   });
 
   // Catch-all not found
-  app.get('*', function(req, res){
-    res.status(404).send('404 Not Found');
+  app.get("*", function (req, res) {
+    res.status(404).send("404 Not Found");
   });
-}
+};
