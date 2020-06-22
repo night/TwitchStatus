@@ -9,6 +9,7 @@
     "express": "~4.13.4",
     "express-toobusy": "0.0.3",
     "irc-message": "^3.0.1",
+    "node-media-server": "^2.1.9",
     "request": ">=2.69.0",
     "ws": "^7.2.0"
   }

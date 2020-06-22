@@ -1,5 +1,6 @@
 var request = require("request");
 var config = require("./config.json");
+var NodeRtmpClient = require("node-media-server/node_rtmp_client");
 
 var HTTP = function (main) {
   this.servers = main.servers;
@@ -18,6 +19,18 @@ HTTP.prototype.checkStatus = function () {
   Object.keys(servers).forEach(function (name) {
     var server = servers[name];
     if (server.type === "chat") return;
+
+    if (server.type === "ingest") {
+      setTimeout(function () {
+        _self.checkIngestAddress.call(
+          _self,
+          server.name,
+          server.host,
+          server.port
+        );
+      }, (t += 1000));
+      return;
+    }
 
     setTimeout(function () {
       _self.checkWebAddress.call(
@@ -68,6 +81,36 @@ HTTP.prototype.checkWebAddress = function (name, host, port, path) {
       }
     }
   );
+};
+
+HTTP.prototype.checkIngestAddress = function (name, host, port) {
+  var servers = this.servers;
+  var startTime = Date.now();
+  var client = new NodeRtmpClient(
+    "rtmp://" + host + ":" + port + "/app/fakestreamkey"
+  );
+
+  // we destroy the connection before attempting to read from a stream key
+  client.rtmpSendCreateStream = function () {};
+
+  client.on("status", function (info) {
+    switch (info.code) {
+      case "NetConnection.Connect.Success":
+        servers[name].lag = Date.now() - startTime;
+        servers[name].status = "online";
+        client.socket.destroy();
+        break;
+      default:
+        console.log("unhandled ingest info", info);
+        break;
+    }
+  });
+
+  client.startPull();
+  client.socket.on("error", () => {
+    servers[name].lag = 999999;
+    servers[name].status = "offline";
+  });
 };
 
 module.exports = HTTP;
