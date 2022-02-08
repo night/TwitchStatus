@@ -4,13 +4,9 @@ var config = require("./config.json");
 module.exports = function (callback) {
   request(
     {
-      url: "https://api.twitch.tv/kraken/ingests",
-      qs: {
-        kappa: Math.random(),
-      },
+      url: "https://ingest.twitch.tv/ingests",
       headers: {
         "Client-ID": config.irc.client_id,
-        Accept: "application/vnd.twitchtv.v5+json",
       },
       json: true,
       timeout: 60000,
