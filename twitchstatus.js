@@ -35,15 +35,6 @@ TwitchStatus = function () {
       path: "/helix/streams",
       port: 443,
     },
-    {
-      name: "TMI.Twitch.TV",
-      type: "web",
-      description:
-        "Chat user lists (if this is down, mod status may also be broken)",
-      host: "tmi.twitch.tv",
-      path: "/group/user/" + config.irc.username,
-      port: 443,
-    },
   ];
   this.servers = {};
 
